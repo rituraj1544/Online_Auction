@@ -1,1 +1,7 @@
+# Keep build outputs, logs, and diagnostic match files out of language statistics.
+frontend/package-lock.json linguist-generated
+frontend/*_log.txt linguist-generated
+frontend/match*.txt linguist-generated
 
+# Identify SQL resources explicitly.
+backend/src/main/resources/data.sql linguist-language=SQL
