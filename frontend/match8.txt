@@ -1,0 +1,44 @@
+Created At: 2026-08-04T03:33:45+05:30
+Completed At: 2026-08-04T03:33:45+05:30
+File Path: `file:///c:/pep%20project/frontend/src/components/AuctionMarketplace.jsx`
+Total Lines: 352
+Total Bytes: 14726
+Showing lines 106 to 141
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+106:           {canBid ? 'Place Bid' : 'View Auction'}
+107:         </Link>
+108:       </div>
+109:     </article>
+110:   );
+111: }
+112: 
+113: export default function AuctionMarketplace({
+114:   title = 'Explore live auctions',
+115:   subtitle = '',
+116:   showHeader = true,
+117: }) {
+118:   const [auctions, setAuctions] = useState([]);
+119:   const [categories, setCategories] = useState([]);
+120:   const [loading, setLoading] = useState(true);
+121:   const [error, setError] = useState('');
+122:   const [now, setNow] = useState(new Date());
+123: 
+124:   // Filter state (applied only on button click)
+125:   const [search, setSearch] = useState('');
+126:   const [category, setCategory] = useState('ALL');
+127:   const [status, setStatus] = useState('ACTIVE');
+128:   const [minPrice, setMinPrice] = useState('');
+129:   const [maxPrice, setMaxPrice] = useState('');
+130: 
+131:   // Applied filters
+132:   const [applied, setApplied] = useState({ search: '', category: 'ALL', status: 'ACTIVE', minPrice: '', maxPrice: '' });
+133: 
+134:   useEffect(() => {
+135:     let mounted = true;
+136:     Promise.all([api.get('/auctions'), api.get('/categories')])
+137:       .then(([aRes, cRes]) => {
+138:         if (!mounted) return;
+139:         setAuctions(aRes.data);
+140:         setCategories(cRes.data);
+141:         setError('');
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

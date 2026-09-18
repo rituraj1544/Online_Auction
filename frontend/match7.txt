@@ -1,0 +1,353 @@
+Created At: 2026-08-04T03:32:57+05:30
+Completed At: 2026-08-04T03:32:57+05:30
+File Path: `file:///c:/pep%20project/frontend/src/components/AuctionMarketplace.jsx`
+Total Lines: 345
+Total Bytes: 14368
+Showing lines 1 to 345
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { useEffect, useMemo, useState } from 'react';
+2: import { Link } from 'react-router-dom';
+3: import { Heart, Search, ChevronDown, Clock, DollarSign, Users, Gavel } from 'lucide-react';
+4: import api from '../services/api';
+5: import { createBidSocket, disconnectBidSocket } from '../services/socket';
+6: import { formatCurrency, formatTimeLeft } from '../utils/format';
+7: 
+8: function searchable(value) {
+9:   return String(value ?? '').toLowerCase();
+10: }
+11: 
+12: function AuctionCard({ auction, now }) {
+13:   const currentUserId = Number(localStorage.getItem('userId') || 0);
+14:   const isSeller = Boolean(currentUserId && auction?.sellerId === currentUserId);
+15:   const isActive = auction.status === 'ACTIVE';
+16:   const price = auction.currentPrice ?? auction.startingPrice;
+17:   const canBid = isActive && !isSeller;
+18: 
+19:   return (
+20:     <article className="group rounded-2xl overflow-hidden border border-[#1e2d4a] bg-[#0d1526] hover:border-blue-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-blue-900/20 flex flex-col">
+21:       {/* Image */}
+22:       <div className="relative aspect-[4/3] bg-[#060d1f] overflow-hidden">
+23:         <Link to={`/auctions/${auction.id}`} className="block w-full h-full">
+24:           {auction.image ? (
+25:             <img
+26:               src={auction.image}
+27:               alt={auction.title}
+28:               className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+29:             />
+30:           ) : (
+31:             <div className="w-full h-full flex items-center justify-center">
+32:               <Gavel className="h-16 w-16 text-[#1e2d4a]" />
+33:             </div>
+34:           )}
+35:         </Link>
+36: 
+37:         {/* Top-left: category badge */}
+38:         <div className="absolute top-3 left-3">
+39:           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0d1526]/90 border border-[#1e2d4a] text-slate-300 backdrop-blur-sm">
+40:             {auction.categoryName || 'Uncategorized'}
+41:           </span>
+42:         </div>
+43: 
+44:         {/* Top-right: status badge */}
+45:         <div className="absolute top-3 right-3">
+46:           <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+47:             isActive
+48:               ? 'bg-emerald-500 text-white'
+49:               : 'bg-slate-600 text-slate-200'
+50:           }`}>
+51:             {isActive ? 'Active' : auction.status}
+52:           </span>
+53:         </div>
+54: 
+55:         {/* Bottom-right: wishlist */}
+56:         <button className="absolute bottom-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-[#0d1526]/80 border border-[#1e2d4a] text-slate-400 hover:text-rose-400 hover:border-rose-400/50 transition-all backdrop-blur-sm">
+57:           <Heart className="h-3.5 w-3.5" />
+58:         </button>
+59:       </div>
+60: 
+61:       {/* Info */}
+62:       <div className="p-4 flex flex-col flex-1 gap-3">
+63:         <div>
+64:           <Link
+65:             to={`/auctions/${auction.id}`}
+66:             className="font-semibold text-slate-100 hover:text-blue-400 transition-colors line-clamp-1 text-base"
+67:           >
+68:             {auction.title}
+69:           </Link>
+70:           <p className="text-xs text-slate-500 mt-0.5">by {auction.sellerName || 'Unknown'}</p>
+71:         </div>
+72: 
+73:         {/* Price + Bids + Time row */}
+74:         <div className="flex items-center gap-2.5 text-sm">
+75:           <div className="flex items-center gap-1 text-slate-100 font-bold">
+76:             <DollarSign className="h-3.5 w-3.5 text-blue-400" />
+77:             <span>{formatCurrency(price).replace('$', '')}</span>
+78:           </div>
+79:           <span className="text-slate-600">•</span>
+80:           <div className="flex items-center gap-1 text-slate-100 font-bold">
+81:             <span>{auction.bidCount || 0}</span>
+82:           </div>
+83:           <span className="text-slate-600">•</span>
+84:           <div className="flex items-center gap-1 text-slate-400">
+85:             <Clock className="h-3.5 w-3.5 text-blue-400" />
+86:             <span className="text-xs">{formatTimeLeft(auction.endTime, now)}</span>
+87:           </div>
+88:         </div>
+89: 
+90:         {/* Bid Now button */}
+91:         <Link
+92:           to={`/auctions/${auction.id}`}
+93:           className={`mt-auto w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all duration-200 flex items-center justify-center gap-2 ${
+94:             canBid
+95:               ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+96:               : 'bg-[#1e2d4a] text-slate-400 hover:text-slate-300'
+97:           }`}
+98:         >
+99:           {canBid ? 'Place Bid' : 'View Auction'}
+100:         </Link>
+101:       </div>
+102:     </article>
+103:   );
+104: }
+105: 
+106: export default function AuctionMarketplace({
+107:   title = 'Explore live auctions',
+108:   subtitle = '',
+109:   showHeader = true,
+110: }) {
+111:   const [auctions, setAuctions] = useState([]);
+112:   const [categories, setCategories] = useState([]);
+113:   const [loading, setLoading] = useState(true);
+114:   const [error, setError] = useState('');
+115:   const [now, setNow] = useState(new Date());
+116: 
+117:   // Filter state (applied only on button click)
+118:   const [search, setSearch] = useState('');
+119:   const [category, setCategory] = useState('ALL');
+120:   const [status, setStatus] = useState('ACTIVE');
+121:   const [minPrice, setMinPrice] = useState('');
+122:   const [maxPrice, setMaxPrice] = useState('');
+123: 
+124:   // Applied filters
+125:   const [applied, setApplied] = useState({ search: '', category: 'ALL', status: 'ACTIVE', minPrice: '', maxPrice: '' });
+126: 
+127:   useEffect(() => {
+128:     let mounted = true;
+129:     Promise.all([api.get('/auctions'), api.get('/categories')])
+130:       .then(([aRes, cRes]) => {
+131:         if (!mounted) return;
+132:         setAuctions(aRes.data);
+133:         setCategories(cRes.data);
+134:         setError('');
+135:       })
+136:       .catch(() => { if (mounted) setError('Unable to load auctions'); })
+137:       .finally(() => { if (mounted) setLoading(false); });
+138:     return () => { mounted = false; };
+139:   }, []);
+140: 
+141:   useEffect(() => {
+142:     const onBid = (payload) => {
+143:       if (!payload?.auctionId) return;
+144:       setAuctions((prev) =>
+145:         prev.map((a) => a.id === payload.auctionId ? { ...a, currentPrice: payload.amount, bidCount: (a.bidCount || 0) + 1 } : a)
+146:       );
+147:     };
+148:     createBidSocket(onBid);
+149:     return () => disconnectBidSocket(onBid);
+150:   }, []);
+151: 
+152:   useEffect(() => {
+153:     const onAuctionUpdate = (payload) => {
+154:       if (!payload?.id) return;
+155:       setAuctions((prev) =>
+156:         prev.map((a) => a.id === payload.id ? { ...a, ...payload } : a)
+157:       );
+158:     };
+159:     import('../services/socket').then(({ createAuctionSocket, disconnectAuctionSocket }) => {
+160:        createAuctionSocket(onAuctionUpdate);
+161:     });
+162:     return () => {
+163:       import('../services/socket').then(({ disconnectAuctionSocket }) => {
+164:         disconnectAuctionSocket(onAuctionUpdate);
+165:       });
+166:     };
+167:   }, []);
+168: 
+169:   useEffect(() => {
+170:     const timer = setInterval(() => setNow(new Date()), 1000);
+171:     return () => clearInterval(timer);
+172:   }, []);
+173: 
+174: 
+175:   function applyFilters() {
+176:     setApplied({ search, category, status, minPrice, maxPrice });
+177:   }
+178: 
+179:   const filtered = useMemo(() => {
+180:     const q = applied.search.trim().toLowerCase();
+181:     return auctions
+182:       .filter((a) => applied.status === 'ALL' || a.status === applied.status)
+183:       .filter((a) => applied.category === 'ALL' || a.categoryName === applied.category)
+184:       .filter((a) => {
+185:         if (!q) return true;
+186:         return [a.title, a.description, a.categoryName, a.sellerName, a.location]
+187:           .some((v) => searchable(v).includes(q));
+188:       })
+189:       .filter((a) => {
+190:         const price = Number(a.currentPrice ?? a.startingPrice ?? 0);
+191:         if (applied.minPrice && price < Number(applied.minPrice)) return false;
+192:         if (applied.maxPrice && price > Number(applied.maxPrice)) return false;
+193:         return true;
+194:       })
+195:       .sort((a, b) => {
+196:         const aEnd = a.endTime ? new Date(a.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+197:         const bEnd = b.endTime ? new Date(b.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+198:         return aEnd - bEnd;
+199:       });
+200:   }, [auctions, applied]);
+201: 
+202:   return (
+203:     <div className="min-h-screen bg-[#060d1f] text-slate-100">
+204:       {showHeader && (
+205:         <div className="mb-6">
+206:           <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2">Marketplace</p>
+207:           <h1 className="text-3xl font-black text-white">{title}</h1>
+208:           {subtitle && <p className="text-slate-400 text-sm mt-1">{subtitle}</p>}
+209:         </div>
+210:       )}
+211: 
+212:       <div className="flex gap-6">
+213:         {/* ── Sidebar ── */}
+214:         <aside className="w-56 flex-shrink-0 space-y-5">
+215:           {/* Search */}
+216:           <div>
+217:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Search</label>
+218:             <div className="flex items-center gap-2 bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5">
+219:               <Search className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+220:               <input
+221:                 value={search}
+222:                 onChange={(e) => setSearch(e.target.value)}
+223:                 onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+224:                 className="bg-transparent text-sm text-slate-100 outline-none placeholder-slate-600 flex-1 min-w-0"
+225:                 placeholder="Items, listings, art"
+226:               />
+227:             </div>
+228:           </div>
+229: 
+230:           {/* Category */}
+231:           <div>
+232:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Category</label>
+233:             <div className="relative">
+234:               <select
+235:                 value={category}
+236:                 onChange={(e) => setCategory(e.target.value)}
+237:                 className="w-full appearance-none bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none cursor-pointer pr-8"
+238:               >
+239:                 <option value="ALL">All categories</option>
+240:                 {categories.map((c) => (
+241:                   <option key={c.id} value={c.name}>{c.name}</option>
+242:                 ))}
+243:               </select>
+244:               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+245:             </div>
+246:           </div>
+247: 
+248:           {/* Status */}
+249:           <div>
+250:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Status</label>
+251:             <div className="relative">
+252:               <select
+253:                 value={status}
+254:                 onChange={(e) => setStatus(e.target.value)}
+255:                 className="w-full appearance-none bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none cursor-pointer pr-8"
+256:               >
+257:                 <option value="ACTIVE">Active</option>
+258:                 <option value="ALL">All</option>
+259:                 <option value="ENDED">Ended</option>
+260:               </select>
+261:               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+262:             </div>
+263:           </div>
+264: 
+265:           {/* Price Range */}
+266:           <div>
+267:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Price Range</label>
+268:             <div className="flex gap-2">
+269:               <input
+270:                 type="number"
+271:                 placeholder="Min"
+272:                 value={minPrice}
+273:                 onChange={(e) => setMinPrice(e.target.value)}
+274:                 className="w-full bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600"
+275:               />
+276:               <input
+277:                 type="number"
+278:                 placeholder="Max"
+279:                 value={maxPrice}
+280:                 onChange={(e) => setMaxPrice(e.target.value)}
+281:                 className="w-full bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600"
+282:               />
+283:             </div>
+284:           </div>
+285: 
+286:           {/* Apply Button */}
+287:           <button
+288:             onClick={applyFilters}
+289:             id="marketplace-apply-filters"
+290:             className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
+291:           >
+292:             Apply Filters
+293:           </button>
+294:         </aside>
+295: 
+296:         {/* ── Main Grid ── */}
+297:         <div className="flex-1 min-w-0">
+298:           {/* Toolbar row */}
+299:           <div className="flex items-center justify-between mb-5">
+300:             <div className="flex items-center gap-2 text-sm">
+301:               <span className="relative flex h-2 w-2">
+302:                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+303:                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+304:               </span>
+305:               <span className="text-slate-400">
+306:                 <span className="text-slate-100 font-semibold">{filtered.length}</span> auctions found
+307:               </span>
+308:             </div>
+309:             {/* Traffic light dots */}
+310:             <div className="flex items-center gap-1.5">
+311:               <div className="h-3 w-3 rounded-full bg-rose-500" />
+312:               <div className="h-3 w-3 rounded-full bg-amber-400" />
+313:               <div className="h-3 w-3 rounded-full bg-emerald-500" />
+314:             </div>
+315:           </div>
+316: 
+317:           {/* States */}
+318:           {loading && (
+319:             <div className="flex justify-center py-20">
+320:               <div className="animate-spin h-10 w-10 border-2 border-blue-500 border-t-transparent rounded-full" />
+321:             </div>
+322:           )}
+323:           {error && (
+324:             <div className="rounded-xl border border-rose-800 bg-rose-950/50 p-6 text-rose-300 text-sm">{error}</div>
+325:           )}
+326:           {!loading && !error && filtered.length === 0 && (
+327:             <div className="flex flex-col items-center justify-center py-20 text-slate-600">
+328:               <Gavel className="h-12 w-12 mb-3" />
+329:               <p className="text-lg font-semibold text-slate-400">No auctions found</p>
+330:               <p className="text-sm mt-1">Try adjusting your filters</p>
+331:             </div>
+332:           )}
+333: 
+334:           {/* Cards Grid */}
+335:           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+336:             {filtered.map((auction) => (
+337:               <AuctionCard key={auction.id} auction={auction} now={now} />
+338:             ))}
+339:           </div>
+340:         </div>
+341:       </div>
+342:     </div>
+343:   );
+344: }
+345: 
+The above content shows the entire, complete file contents of the requested file.

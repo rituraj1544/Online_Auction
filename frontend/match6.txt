@@ -1,0 +1,386 @@
+Created At: 2026-08-04T02:41:46+05:30
+Completed At: 2026-08-04T02:41:47+05:30
+File Path: `file:///c:/pep%20project/frontend/src/components/AuctionMarketplace.jsx`
+Total Lines: 378
+Total Bytes: 15583
+Showing lines 1 to 378
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { useEffect, useMemo, useState } from 'react';
+2: import { Link } from 'react-router-dom';
+3: import { Heart, Search, ChevronDown, Clock, DollarSign, Users, Gavel } from 'lucide-react';
+4: import api from '../services/api';
+5: import { createBidSocket, disconnectBidSocket } from '../services/socket';
+6: import { formatCurrency, formatTimeLeft } from '../utils/format';
+7: 
+8: function searchable(value) {
+9:   return String(value ?? '').toLowerCase();
+10: }
+11: 
+12: function AuctionCard({ auction, now, onBid }) {
+13:   const [bidding, setBidding] = useState(false);
+14:   const isActive = auction.status === 'ACTIVE';
+15:   const price = auction.currentPrice ?? auction.startingPrice;
+16: 
+17:   const handleBidClick = async (e) => {
+18:     e.preventDefault();
+19:     if (bidding) return;
+20:     setBidding(true);
+21:     await onBid(auction.id, price, auction.minimumIncrement);
+22:     setBidding(false);
+23:   };
+24: 
+25:   return (
+26:     <article className="group rounded-2xl overflow-hidden border border-[#1e2d4a] bg-[#0d1526] hover:border-blue-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-blue-900/20 flex flex-col">
+27:       {/* Image */}
+28:       <div className="relative aspect-[4/3] bg-[#060d1f] overflow-hidden">
+29:         <Link to={`/auctions/${auction.id}`} className="block w-full h-full">
+30:           {auction.image ? (
+31:             <img
+32:               src={auction.image}
+33:               alt={auction.title}
+34:               className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+35:             />
+36:           ) : (
+37:             <div className="w-full h-full flex items-center justify-center">
+38:               <Gavel className="h-16 w-16 text-[#1e2d4a]" />
+39:             </div>
+40:           )}
+41:         </Link>
+42: 
+43:         {/* Top-left: category badge */}
+44:         <div className="absolute top-3 left-3">
+45:           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0d1526]/90 border border-[#1e2d4a] text-slate-300 backdrop-blur-sm">
+46:             {auction.categoryName || 'Uncategorized'}
+47:           </span>
+48:         </div>
+49: 
+50:         {/* Top-right: status badge */}
+51:         <div className="absolute top-3 right-3">
+52:           <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+53:             isActive
+54:               ? 'bg-emerald-500 text-white'
+55:               : 'bg-slate-600 text-slate-200'
+56:           }`}>
+57:             {isActive ? 'Active' : auction.status}
+58:           </span>
+59:         </div>
+60: 
+61:         {/* Bottom-right: wishlist */}
+62:         <button className="absolute bottom-3 right-3 flex items-center justify-center w-7 h-7 rounded-full bg-[#0d1526]/80 border border-[#1e2d4a] text-slate-400 hover:text-rose-400 hover:border-rose-400/50 transition-all backdrop-blur-sm">
+63:           <Heart className="h-3.5 w-3.5" />
+64:         </button>
+65:       </div>
+66: 
+67:       {/* Info */}
+68:       <div className="p-4 flex flex-col flex-1 gap-3">
+69:         <div>
+70:           <Link
+71:             to={`/auctions/${auction.id}`}
+72:             className="font-semibold text-slate-100 hover:text-blue-400 transition-colors line-clamp-1 text-base"
+73:           >
+74:             {auction.title}
+75:           </Link>
+76:           <p className="text-xs text-slate-500 mt-0.5">by {auction.sellerName || 'Unknown'}</p>
+77:         </div>
+78: 
+79:         {/* Price + Bids + Time row */}
+80:         <div className="flex items-center gap-2.5 text-sm">
+81:           <div className="flex items-center gap-1 text-slate-100 font-bold">
+82:             <DollarSign className="h-3.5 w-3.5 text-blue-400" />
+83:             <span>{formatCurrency(price).replace('$', '')}</span>
+84:           </div>
+85:           <span className="text-slate-600">•</span>
+86:           <div className="flex items-center gap-1 text-slate-100 font-bold">
+87:             <span>{auction.bidCount || 0}</span>
+88:           </div>
+89:           <span className="text-slate-600">•</span>
+90:           <div className="flex items-center gap-1 text-slate-400">
+91:             <Clock className="h-3.5 w-3.5 text-blue-400" />
+92:             <span className="text-xs">{formatTimeLeft(auction.endTime, now)}</span>
+93:           </div>
+94:         </div>
+95: 
+96:         {/* Bid Now button */}
+97:         {isActive ? (
+98:           <button
+99:             onClick={handleBidClick}
+100:             disabled={bidding}
+101:             className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all duration-200 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20 disabled:opacity-60 flex items-center justify-center gap-2"
+102:           >
+103:             {bidding ? (
+104:               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+105:                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+106:                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+107:               </svg>
+108:             ) : (
+109:               'Quick Bid'
+110:             )}
+111:           </button>
+112:         ) : (
+113:           <Link
+114:             to={`/auctions/${auction.id}`}
+115:             className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all duration-200 bg-[#1e2d4a] text-slate-400 cursor-not-allowed"
+116:           >
+117:             View Auction
+118:           </Link>
+119:         )}
+120:       </div>
+121:     </article>
+122:   );
+123: }
+124: 
+125: export default function AuctionMarketplace({
+126:   title = 'Explore live auctions',
+127:   subtitle = '',
+128:   showHeader = true,
+129: }) {
+130:   const [auctions, setAuctions] = useState([]);
+131:   const [categories, setCategories] = useState([]);
+132:   const [loading, setLoading] = useState(true);
+133:   const [error, setError] = useState('');
+134:   const [now, setNow] = useState(new Date());
+135: 
+136:   // Filter state (applied only on button click)
+137:   const [search, setSearch] = useState('');
+138:   const [category, setCategory] = useState('ALL');
+139:   const [status, setStatus] = useState('ACTIVE');
+140:   const [minPrice, setMinPrice] = useState('');
+141:   const [maxPrice, setMaxPrice] = useState('');
+142: 
+143:   // Applied filters
+144:   const [applied, setApplied] = useState({ search: '', category: 'ALL', status: 'ACTIVE', minPrice: '', maxPrice: '' });
+145: 
+146:   useEffect(() => {
+147:     let mounted = true;
+148:     Promise.all([api.get('/auctions'), api.get('/categories')])
+149:       .then(([aRes, cRes]) => {
+150:         if (!mounted) return;
+151:         setAuctions(aRes.data);
+152:         setCategories(cRes.data);
+153:         setError('');
+154:       })
+155:       .catch(() => { if (mounted) setError('Unable to load auctions'); })
+156:       .finally(() => { if (mounted) setLoading(false); });
+157:     return () => { mounted = false; };
+158:   }, []);
+159: 
+160:   useEffect(() => {
+161:     const onBid = (payload) => {
+162:       if (!payload?.auctionId) return;
+163:       setAuctions((prev) =>
+164:         prev.map((a) => a.id === payload.auctionId ? { ...a, currentPrice: payload.amount, bidCount: (a.bidCount || 0) + 1 } : a)
+165:       );
+166:     };
+167:     createBidSocket(onBid);
+168:     return () => disconnectBidSocket(onBid);
+169:   }, []);
+170: 
+171:   useEffect(() => {
+172:     const onAuctionUpdate = (payload) => {
+173:       if (!payload?.id) return;
+174:       setAuctions((prev) =>
+175:         prev.map((a) => a.id === payload.id ? { ...a, ...payload } : a)
+176:       );
+177:     };
+178:     import('../services/socket').then(({ createAuctionSocket, disconnectAuctionSocket }) => {
+179:        createAuctionSocket(onAuctionUpdate);
+180:     });
+181:     return () => {
+182:       import('../services/socket').then(({ disconnectAuctionSocket }) => {
+183:         disconnectAuctionSocket(onAuctionUpdate);
+184:       });
+185:     };
+186:   }, []);
+187: 
+188:   useEffect(() => {
+189:     const timer = setInterval(() => setNow(new Date()), 1000);
+190:     return () => clearInterval(timer);
+191:   }, []);
+192: 
+193:   const handleQuickBid = async (auctionId, currentPrice, minIncrement) => {
+194:     const token = localStorage.getItem('token');
+195:     if (!token) {
+196:       alert('Please log in to place a bid.');
+197:       return;
+198:     }
+199:     const amount = currentPrice + (minIncrement || 1);
+200:     try {
+201:       await api.post('/bids', { auctionId, amount });
+202:     } catch (err) {
+203:       alert(err.response?.data?.message || 'Bid failed. Please try again.');
+204:     }
+205:   };
+206: 
+207:   function applyFilters() {
+208:     setApplied({ search, category, status, minPrice, maxPrice });
+209:   }
+210: 
+211:   const filtered = useMemo(() => {
+212:     const q = applied.search.trim().toLowerCase();
+213:     return auctions
+214:       .filter((a) => applied.status === 'ALL' || a.status === applied.status)
+215:       .filter((a) => applied.category === 'ALL' || a.categoryName === applied.category)
+216:       .filter((a) => {
+217:         if (!q) return true;
+218:         return [a.title, a.description, a.categoryName, a.sellerName, a.location]
+219:           .some((v) => searchable(v).includes(q));
+220:       })
+221:       .filter((a) => {
+222:         const price = Number(a.currentPrice ?? a.startingPrice ?? 0);
+223:         if (applied.minPrice && price < Number(applied.minPrice)) return false;
+224:         if (applied.maxPrice && price > Number(applied.maxPrice)) return false;
+225:         return true;
+226:       })
+227:       .sort((a, b) => {
+228:         const aEnd = a.endTime ? new Date(a.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+229:         const bEnd = b.endTime ? new Date(b.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+230:         return aEnd - bEnd;
+231:       });
+232:   }, [auctions, applied]);
+233: 
+234:   return (
+235:     <div className="min-h-screen bg-[#060d1f] text-slate-100">
+236:       {showHeader && (
+237:         <div className="mb-6">
+238:           <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2">Marketplace</p>
+239:           <h1 className="text-3xl font-black text-white">{title}</h1>
+240:           {subtitle && <p className="text-slate-400 text-sm mt-1">{subtitle}</p>}
+241:         </div>
+242:       )}
+243: 
+244:       <div className="flex gap-6">
+245:         {/* ── Sidebar ── */}
+246:         <aside className="w-56 flex-shrink-0 space-y-5">
+247:           {/* Search */}
+248:           <div>
+249:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Search</label>
+250:             <div className="flex items-center gap-2 bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5">
+251:               <Search className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+252:               <input
+253:                 value={search}
+254:                 onChange={(e) => setSearch(e.target.value)}
+255:                 onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+256:                 className="bg-transparent text-sm text-slate-100 outline-none placeholder-slate-600 flex-1 min-w-0"
+257:                 placeholder="Items, listings, art"
+258:               />
+259:             </div>
+260:           </div>
+261: 
+262:           {/* Category */}
+263:           <div>
+264:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Category</label>
+265:             <div className="relative">
+266:               <select
+267:                 value={category}
+268:                 onChange={(e) => setCategory(e.target.value)}
+269:                 className="w-full appearance-none bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none cursor-pointer pr-8"
+270:               >
+271:                 <option value="ALL">All categories</option>
+272:                 {categories.map((c) => (
+273:                   <option key={c.id} value={c.name}>{c.name}</option>
+274:                 ))}
+275:               </select>
+276:               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+277:             </div>
+278:           </div>
+279: 
+280:           {/* Status */}
+281:           <div>
+282:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Status</label>
+283:             <div className="relative">
+284:               <select
+285:                 value={status}
+286:                 onChange={(e) => setStatus(e.target.value)}
+287:                 className="w-full appearance-none bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none cursor-pointer pr-8"
+288:               >
+289:                 <option value="ACTIVE">Active</option>
+290:                 <option value="ALL">All</option>
+291:                 <option value="PENDING">Pending</option>
+292:                 <option value="ENDED">Ended</option>
+293:               </select>
+294:               <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+295:             </div>
+296:           </div>
+297: 
+298:           {/* Price Range */}
+299:           <div>
+300:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Price Range</label>
+301:             <div className="flex gap-2">
+302:               <input
+303:                 type="number"
+304:                 placeholder="Min"
+305:                 value={minPrice}
+306:                 onChange={(e) => setMinPrice(e.target.value)}
+307:                 className="w-full bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600"
+308:               />
+309:               <input
+310:                 type="number"
+311:                 placeholder="Max"
+312:                 value={maxPrice}
+313:                 onChange={(e) => setMaxPrice(e.target.value)}
+314:                 className="w-full bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none placeholder-slate-600"
+315:               />
+316:             </div>
+317:           </div>
+318: 
+319:           {/* Apply Button */}
+320:           <button
+321:             onClick={applyFilters}
+322:             id="marketplace-apply-filters"
+323:             className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
+324:           >
+325:             Apply Filters
+326:           </button>
+327:         </aside>
+328: 
+329:         {/* ── Main Grid ── */}
+330:         <div className="flex-1 min-w-0">
+331:           {/* Toolbar row */}
+332:           <div className="flex items-center justify-between mb-5">
+333:             <div className="flex items-center gap-2 text-sm">
+334:               <span className="relative flex h-2 w-2">
+335:                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+336:                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+337:               </span>
+338:               <span className="text-slate-400">
+339:                 <span className="text-slate-100 font-semibold">{filtered.length}</span> auctions found
+340:               </span>
+341:             </div>
+342:             {/* Traffic light dots */}
+343:             <div className="flex items-center gap-1.5">
+344:               <div className="h-3 w-3 rounded-full bg-rose-500" />
+345:               <div className="h-3 w-3 rounded-full bg-amber-400" />
+346:               <div className="h-3 w-3 rounded-full bg-emerald-500" />
+347:             </div>
+348:           </div>
+349: 
+350:           {/* States */}
+351:           {loading && (
+352:             <div className="flex justify-center py-20">
+353:               <div className="animate-spin h-10 w-10 border-2 border-blue-500 border-t-transparent rounded-full" />
+354:             </div>
+355:           )}
+356:           {error && (
+357:             <div className="rounded-xl border border-rose-800 bg-rose-950/50 p-6 text-rose-300 text-sm">{error}</div>
+358:           )}
+359:           {!loading && !error && filtered.length === 0 && (
+360:             <div className="flex flex-col items-center justify-center py-20 text-slate-600">
+361:               <Gavel className="h-12 w-12 mb-3" />
+362:               <p className="text-lg font-semibold text-slate-400">No auctions found</p>
+363:               <p className="text-sm mt-1">Try adjusting your filters</p>
+364:             </div>
+365:           )}
+366: 
+367:           {/* Cards Grid */}
+368:           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+369:             {filtered.map((auction) => (
+370:               <AuctionCard key={auction.id} auction={auction} now={now} onBid={handleQuickBid} />
+371:             ))}
+372:           </div>
+373:         </div>
+374:       </div>
+375:     </div>
+376:   );
+377: }
+378: 
+The above content shows the entire, complete file contents of the requested file.

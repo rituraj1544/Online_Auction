@@ -1,0 +1,287 @@
+Created At: 2026-08-04T01:06:16+05:30
+Completed At: 2026-08-04T01:06:16+05:30
+File Path: `file:///c:/pep%20project/frontend/src/components/AuctionMarketplace.jsx`
+Total Lines: 279
+Total Bytes: 11966
+Showing lines 1 to 279
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { useEffect, useMemo, useState } from 'react';
+2: import { Link } from 'react-router-dom';
+3: import { BadgeDollarSign, Clock3, Gavel, Search, SlidersHorizontal } from 'lucide-react';
+4: import api from '../services/api';
+5: import { createBidSocket, disconnectBidSocket } from '../services/socket';
+6: 
+7: const currency = new Intl.NumberFormat('en-US', {
+8:   style: 'currency',
+9:   currency: 'USD',
+10: });
+11: 
+12: function formatCurrency(value) {
+13:   const amount = Number(value ?? 0);
+14:   return Number.isFinite(amount) ? currency.format(amount) : currency.format(0);
+15: }
+16: 
+17: function timeLeft(endTime, now) {
+18:   if (!endTime) return 'No end time';
+19: 
+20:   const remaining = new Date(endTime).getTime() - now.getTime();
+21:   if (remaining <= 0) return 'Ended';
+22: 
+23:   const days = Math.floor(remaining / 86400000);
+24:   const hours = Math.floor((remaining % 86400000) / 3600000);
+25:   const minutes = Math.floor((remaining % 3600000) / 60000);
+26: 
+27:   if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+28:   if (hours > 0) return `${hours}h ${minutes}m`;
+29:   return `${Math.max(minutes, 1)}m`;
+30: }
+31: 
+32: function searchable(value) {
+33:   return String(value ?? '').toLowerCase();
+34: }
+35: 
+36: export default function AuctionMarketplace({ title = 'Explore live auctions', subtitle = 'Bid on active items with instant price updates.', showHeader = true }) {
+37:   const [auctions, setAuctions] = useState([]);
+38:   const [query, setQuery] = useState('');
+39:   const [category, setCategory] = useState('ALL');
+40:   const [status, setStatus] = useState('ACTIVE');
+41:   const [sort, setSort] = useState('ending');
+42:   const [now, setNow] = useState(new Date());
+43:   const [loading, setLoading] = useState(true);
+44:   const [error, setError] = useState('');
+45: 
+46:   useEffect(() => {
+47:     let mounted = true;
+48: 
+49:     api.get('/auctions')
+50:       .then((res) => {
+51:         if (mounted) {
+52:           setAuctions(res.data);
+53:           setError('');
+54:         }
+55:       })
+56:       .catch(() => {
+57:         if (mounted) setError('Unable to load auctions');
+58:       })
+59:       .finally(() => {
+60:         if (mounted) setLoading(false);
+61:       });
+62: 
+63:     return () => {
+64:       mounted = false;
+65:     };
+66:   }, []);
+67: 
+68:   useEffect(() => {
+69:     const onBid = (payload) => {
+70:       if (!payload?.auctionId) return;
+71: 
+72:       setAuctions((current) => current.map((auction) => (
+73:         auction.id === payload.auctionId
+74:           ? { ...auction, currentPrice: payload.amount }
+75:           : auction
+76:       )));
+77:     };
+78: 
+79:     createBidSocket(onBid);
+80:     return () => disconnectBidSocket(onBid);
+81:   }, []);
+82: 
+83:   useEffect(() => {
+84:     const timer = window.setInterval(() => setNow(new Date()), 30000);
+85:     return () => window.clearInterval(timer);
+86:   }, []);
+87: 
+88:   const categories = useMemo(() => {
+89:     const names = auctions.map((auction) => auction.categoryName).filter(Boolean);
+90:     return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+91:   }, [auctions]);
+92: 
+93:   const filteredAuctions = useMemo(() => {
+94:     const normalizedQuery = query.trim().toLowerCase();
+95: 
+96:     return auctions
+97:       .filter((auction) => status === 'ALL' || auction.status === status)
+98:       .filter((auction) => category === 'ALL' || auction.categoryName === category)
+99:       .filter((auction) => {
+100:         if (!normalizedQuery) return true;
+101: 
+102:         return [
+103:           auction.title,
+104:           auction.description,
+105:           auction.categoryName,
+106:           auction.sellerName,
+107:           auction.location,
+108:         ].some((value) => searchable(value).includes(normalizedQuery));
+109:       })
+110:       .sort((a, b) => {
+111:         if (sort === 'highest') return Number(b.currentPrice ?? 0) - Number(a.currentPrice ?? 0);
+112:         if (sort === 'lowest') return Number(a.currentPrice ?? 0) - Number(b.currentPrice ?? 0);
+113:         if (sort === 'newest') return new Date(b.createdAt ?? 0) - new Date(a.createdAt ?? 0);
+114: 
+115:         const aEnd = a.endTime ? new Date(a.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+116:         const bEnd = b.endTime ? new Date(b.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+117:         return aEnd - bEnd;
+118:       });
+119:   }, [auctions, category, query, sort, status]);
+120: 
+121:   return (
+122:     <section className="space-y-6">
+123:       {showHeader && (
+124:         <div className="flex flex-col gap-2">
+125:           <p className="text-xs font-semibold uppercase text-sky-300">Marketplace</p>
+126:           <h1 className="text-3xl font-bold text-slate-50">{title}</h1>
+127:           <p className="max-w-2xl text-sm text-slate-400">{subtitle}</p>
+128:         </div>
+129:       )}
+130: 
+131:       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+132:         <aside className="h-fit rounded-lg border border-slate-800 bg-slate-900/90 p-5">
+133:           <div className="mb-5 flex items-center gap-2 text-slate-100">
+134:             <SlidersHorizontal className="h-5 w-5 text-sky-300" />
+135:             <h2 className="text-lg font-semibold">Filters</h2>
+136:           </div>
+137: 
+138:           <div className="space-y-4">
+139:             <label className="block">
+140:               <span className="mb-2 block text-sm text-slate-400">Search</span>
+141:               <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 px-3">
+142:                 <Search className="h-4 w-4 text-slate-500" />
+143:                 <input
+144:                   value={query}
+145:                   onChange={(event) => setQuery(event.target.value)}
+146:                   className="min-w-0 flex-1 bg-transparent py-3 text-sm text-slate-100 outline-none"
+147:                   placeholder="Item, seller, city"
+148:                 />
+149:               </div>
+150:             </label>
+151: 
+152:             <label className="block">
+153:               <span className="mb-2 block text-sm text-slate-400">Category</span>
+154:               <select
+155:                 value={category}
+156:                 onChange={(event) => setCategory(event.target.value)}
+157:                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-slate-100 outline-none"
+158:               >
+159:                 <option value="ALL">All categories</option>
+160:                 {categories.map((categoryName) => (
+161:                   <option key={categoryName} value={categoryName}>{categoryName}</option>
+162:                 ))}
+163:               </select>
+164:             </label>
+165: 
+166:             <label className="block">
+167:               <span className="mb-2 block text-sm text-slate-400">Status</span>
+168:               <select
+169:                 value={status}
+170:                 onChange={(event) => setStatus(event.target.value)}
+171:                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-slate-100 outline-none"
+172:               >
+173:                 <option value="ACTIVE">Active</option>
+174:                 <option value="ALL">All</option>
+175:                 <option value="PENDING">Pending</option>
+176:                 <option value="ENDED">Ended</option>
+177:                 <option value="CANCELLED">Cancelled</option>
+178:               </select>
+179:             </label>
+180: 
+181:             <label className="block">
+182:               <span className="mb-2 block text-sm text-slate-400">Sort by</span>
+183:               <select
+184:                 value={sort}
+185:                 onChange={(event) => setSort(event.target.value)}
+186:                 className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-slate-100 outline-none"
+187:               >
+188:                 <option value="ending">Ending soon</option>
+189:                 <option value="highest">Highest bid</option>
+190:                 <option value="lowest">Lowest price</option>
+191:                 <option value="newest">Newly listed</option>
+192:               </select>
+193:             </label>
+194:           </div>
+195:         </aside>
+196: 
+197:         <div className="space-y-4">
+198:           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900/80 px-4 py-3">
+199:             <div className="flex items-center gap-2 text-sm text-slate-300">
+200:               <span className="h-2 w-2 rounded-full bg-emerald-400" />
+201:               <span>{filteredAuctions.length} auctions shown</span>
+202:             </div>
+203:             <div className="text-sm text-slate-500">Live prices update automatically</div>
+204:           </div>
+205: 
+206:           {loading && <p className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-slate-400">Loading auctions...</p>}
+207:           {error && <p className="rounded-lg border border-rose-900 bg-rose-950/50 p-6 text-rose-200">{error}</p>}
+208: 
+209:           {!loading && !error && filteredAuctions.length === 0 && (
+210:             <p className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-slate-400">No auctions match these filters.</p>
+211:           )}
+212: 
+213:           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+214:             {filteredAuctions.map((auction) => {
+215:               const isActive = auction.status === 'ACTIVE';
+216:               const price = auction.currentPrice ?? auction.startingPrice;
+217: 
+218:               return (
+219:                 <article key={auction.id} className="overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+220:                   <Link to={`/auctions/${auction.id}`} className="block aspect-[4/3] bg-slate-950">
+221:                     {auction.image ? (
+222:                       <img src={auction.image} alt={auction.title} className="h-full w-full object-contain p-4" />
+223:                     ) : (
+224:                       <div className="flex h-full w-full items-center justify-center text-4xl font-bold text-slate-700">AU</div>
+225:                     )}
+226:                   </Link>
+227: 
+228:                   <div className="space-y-4 p-4">
+229:                     <div className="flex items-start justify-between gap-3">
+230:                       <div className="min-w-0">
+231:                         <p className="mb-2 inline-flex rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-sky-200">
+232:                           {auction.categoryName || 'Uncategorized'}
+233:                         </p>
+234:                         <Link to={`/auctions/${auction.id}`} className="block truncate text-lg font-semibold text-slate-50 hover:text-sky-300">
+235:                           {auction.title}
+236:                         </Link>
+237:                         <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm text-slate-400">{auction.description}</p>
+238:                       </div>
+239:                       <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${isActive ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>
+240:                         {auction.status}
+241:                       </span>
+242:                     </div>
+243: 
+244:                     <div className="grid grid-cols-2 gap-3 text-sm">
+245:                       <div className="rounded-lg bg-slate-950 p-3">
+246:                         <div className="mb-2 flex items-center gap-2 text-slate-500">
+247:                           <BadgeDollarSign className="h-4 w-4 text-emerald-300" />
+248:                           <span>Current bid</span>
+249:                         </div>
+250:                         <p className="text-lg font-semibold text-emerald-300">{formatCurrency(price)}</p>
+251:                       </div>
+252: 
+253:                       <div className="rounded-lg bg-slate-950 p-3">
+254:                         <div className="mb-2 flex items-center gap-2 text-slate-500">
+255:                           <Clock3 className="h-4 w-4 text-rose-300" />
+256:                           <span>Time left</span>
+257:                         </div>
+258:                         <p className="text-lg font-semibold text-slate-100">{timeLeft(auction.endTime, now)}</p>
+259:                       </div>
+260:                     </div>
+261: 
+262:                     <Link
+263:                       to={`/auctions/${auction.id}`}
+264:                       className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition ${isActive ? 'bg-sky-400 text-slate-950 hover:bg-sky-300' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+265:                     >
+266:                       <Gavel className="h-4 w-4" />
+267:                       {isActive ? 'Bid Now' : 'View Auction'}
+268:                     </Link>
+269:                   </div>
+270:                 </article>
+271:               );
+272:             })}
+273:           </div>
+274:         </div>
+275:       </div>
+276:     </section>
+277:   );
+278: }
+279: 
+The above content shows the entire, complete file contents of the requested file.

@@ -1,0 +1,58 @@
+Created At: 2026-08-04T03:31:09+05:30
+Completed At: 2026-08-04T03:31:09+05:30
+File Path: `file:///c:/pep%20project/frontend/src/pages/DashboardPage.jsx`
+Total Lines: 231
+Total Bytes: 10675
+Showing lines 1 to 50
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { useEffect, useState } from 'react';
+2: import { Link } from 'react-router-dom';
+3: import { BadgeDollarSign, Gavel, PlusCircle, UserRound, Trophy, TrendingUp, Store } from 'lucide-react';
+4: import api from '../services/api';
+5: import { formatCurrency } from '../utils/format';
+6: 
+7: function StatCard({ icon: Icon, label, value, color }) {
+8:   return (
+9:     <div className="card p-5">
+10:       <div className="mb-3 flex items-center gap-2 text-slate-400">
+11:         <Icon className={`h-5 w-5 ${color}`} />
+12:         <span className="text-sm">{label}</span>
+13:       </div>
+14:       <p className="text-3xl font-bold text-slate-50">{value}</p>
+15:     </div>
+16:   );
+17: }
+18: 
+19: export default function DashboardPage() {
+20:   const [auctions, setAuctions] = useState([]);
+21:   const [myBids, setMyBids] = useState([]);
+22:   const [loadingBids, setLoadingBids] = useState(true);
+23:   const userName = localStorage.getItem('userName') || 'User';
+24:   const currentUserId = Number(localStorage.getItem('userId') || 0);
+25: 
+26:   useEffect(() => {
+27:     api.get('/auctions').then((res) => setAuctions(res.data));
+28:     api.get('/bids/my')
+29:       .then((res) => setMyBids(res.data))
+30:       .finally(() => setLoadingBids(false));
+31:   }, []);
+32: 
+33:   const myAuctions = auctions.filter((a) => a.sellerId === currentUserId);
+34:   const liveAuctions = auctions.filter((a) => a.status === 'ACTIVE' && a.sellerId !== currentUserId);
+35: 
+36:   // Group my bids by auction — keep only the latest (highest) bid per auction
+37:   const myBidsByAuction = Object.values(
+38:     myBids.reduce((acc, bid) => {
+39:       if (!acc[bid.auctionId] || bid.amount > acc[bid.auctionId].amount) {
+40:         acc[bid.auctionId] = bid;
+41:       }
+42:       return acc;
+43:     }, {})
+44:   );
+45: 
+46:   // Find won auctions
+47:   const wonAuctions = myAuctions.filter((a) => a.status === 'ENDED' && a.winnerId === currentUserId);
+48: 
+49:   return (
+50:     <div className="space-y-8 p-6 lg:p-8 max-w-7xl mx-auto">
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

@@ -1,0 +1,30 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Frontend build
+dist/
+frontend/dist/
+build/
+
+# Backend build
+target/
+backend/target/
+auction-backend/target/
+backend/bin/
+
+# Logs
+*.log
+
+# Java/Eclipse/IDEA
+*.class
+.project
+.classpath
+.settings/
+.idea/
+*.iml
+.springBeans
+
+# OS
+.DS_Store
+Thumbs.db

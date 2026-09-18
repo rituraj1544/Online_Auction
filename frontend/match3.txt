@@ -1,0 +1,38 @@
+Created At: 2026-08-04T01:16:55+05:30
+Completed At: 2026-08-04T01:16:56+05:30
+File Path: `file:///c:/pep%20project/frontend/src/components/AuctionMarketplace.jsx`
+Total Lines: 254
+Total Bytes: 11220
+Showing lines 1 to 30
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { useEffect, useMemo, useState } from 'react';
+2: import { Link } from 'react-router-dom';
+3: import { BadgeDollarSign, Clock3, Gavel, Search, SlidersHorizontal } from 'lucide-react';
+4: import api from '../services/api';
+5: import { createBidSocket, disconnectBidSocket } from '../services/socket';
+6: import { formatCurrency, formatTimeLeft } from '../utils/format';
+7: 
+8: 
+9: 
+10: 
+11: export default function AuctionMarketplace({ title = 'Explore live auctions', subtitle = 'Bid on active items with instant price updates.', showHeader = true }) {
+12:   const [auctions, setAuctions] = useState([]);
+13:   const [query, setQuery] = useState('');
+14:   const [category, setCategory] = useState('ALL');
+15:   const [status, setStatus] = useState('ACTIVE');
+16:   const [sort, setSort] = useState('ending');
+17:   const [now, setNow] = useState(new Date());
+18:   const [loading, setLoading] = useState(true);
+19:   const [error, setError] = useState('');
+20: 
+21:   useEffect(() => {
+22:     let mounted = true;
+23: 
+24:     api.get('/auctions')
+25:       .then((res) => {
+26:         if (mounted) {
+27:           setAuctions(res.data);
+28:           setError('');
+29:         }
+30:       })
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

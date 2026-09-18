@@ -1,0 +1,44 @@
+Created At: 2026-08-04T01:40:21+05:30
+Completed At: 2026-08-04T01:40:21+05:30
+File Path: `file:///c:/pep%20project/frontend/src/components/AuctionMarketplace.jsx`
+Total Lines: 342
+Total Bytes: 14194
+Showing lines 80 to 115
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+80:           <span className="text-slate-600">•</span>
+81:           <div className="flex items-center gap-1 text-slate-400">
+82:             <Clock className="h-3.5 w-3.5 text-blue-400" />
+83:             <span className="text-xs">{formatTimeLeft(auction.endTime, now)}</span>
+84:           </div>
+85:         </div>
+86: 
+87:         {/* Bid Now button */}
+88:         <Link
+89:           to={`/auctions/${auction.id}`}
+90:           className={`mt-auto w-full py-2.5 rounded-xl text-sm font-semibold text-center transition-all duration-200 ${
+91:             isActive
+92:               ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+93:               : 'bg-[#1e2d4a] text-slate-400 cursor-not-allowed'
+94:           }`}
+95:         >
+96:           {isActive ? 'Bid Now' : 'View Auction'}
+97:         </Link>
+98:       </div>
+99:     </article>
+100:   );
+101: }
+102: 
+103: export default function AuctionMarketplace({
+104:   title = 'Explore live auctions',
+105:   subtitle = '',
+106:   showHeader = true,
+107: }) {
+108:   const [auctions, setAuctions] = useState([]);
+109:   const [categories, setCategories] = useState([]);
+110:   const [loading, setLoading] = useState(true);
+111:   const [error, setError] = useState('');
+112:   const [now, setNow] = useState(new Date());
+113: 
+114:   // Filter state (applied only on button click)
+115:   const [search, setSearch] = useState('');
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

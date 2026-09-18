@@ -1,0 +1,117 @@
+Created At: 2026-08-04T03:33:50+05:30
+Completed At: 2026-08-04T03:33:50+05:30
+File Path: `file:///c:/pep%20project/frontend/src/components/AuctionMarketplace.jsx`
+Total Lines: 352
+Total Bytes: 14726
+Showing lines 142 to 250
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+142:       })
+143:       .catch(() => { if (mounted) setError('Unable to load auctions'); })
+144:       .finally(() => { if (mounted) setLoading(false); });
+145:     return () => { mounted = false; };
+146:   }, []);
+147: 
+148:   useEffect(() => {
+149:     const onBid = (payload) => {
+150:       if (!payload?.auctionId) return;
+151:       setAuctions((prev) =>
+152:         prev.map((a) => a.id === payload.auctionId ? { ...a, currentPrice: payload.amount, bidCount: (a.bidCount || 0) + 1 } : a)
+153:       );
+154:     };
+155:     createBidSocket(onBid);
+156:     return () => disconnectBidSocket(onBid);
+157:   }, []);
+158: 
+159:   useEffect(() => {
+160:     const onAuctionUpdate = (payload) => {
+161:       if (!payload?.id) return;
+162:       setAuctions((prev) =>
+163:         prev.map((a) => a.id === payload.id ? { ...a, ...payload } : a)
+164:       );
+165:     };
+166:     import('../services/socket').then(({ createAuctionSocket, disconnectAuctionSocket }) => {
+167:        createAuctionSocket(onAuctionUpdate);
+168:     });
+169:     return () => {
+170:       import('../services/socket').then(({ disconnectAuctionSocket }) => {
+171:         disconnectAuctionSocket(onAuctionUpdate);
+172:       });
+173:     };
+174:   }, []);
+175: 
+176:   useEffect(() => {
+177:     const timer = setInterval(() => setNow(new Date()), 1000);
+178:     return () => clearInterval(timer);
+179:   }, []);
+180: 
+181: 
+182:   function applyFilters() {
+183:     setApplied({ search, category, status, minPrice, maxPrice });
+184:   }
+185: 
+186:   const filtered = useMemo(() => {
+187:     const q = applied.search.trim().toLowerCase();
+188:     return auctions
+189:       .filter((a) => applied.status === 'ALL' || a.status === applied.status)
+190:       .filter((a) => applied.category === 'ALL' || a.categoryName === applied.category)
+191:       .filter((a) => {
+192:         if (!q) return true;
+193:         return [a.title, a.description, a.categoryName, a.sellerName, a.location]
+194:           .some((v) => searchable(v).includes(q));
+195:       })
+196:       .filter((a) => {
+197:         const price = Number(a.currentPrice ?? a.startingPrice ?? 0);
+198:         if (applied.minPrice && price < Number(applied.minPrice)) return false;
+199:         if (applied.maxPrice && price > Number(applied.maxPrice)) return false;
+200:         return true;
+201:       })
+202:       .sort((a, b) => {
+203:         const aEnd = a.endTime ? new Date(a.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+204:         const bEnd = b.endTime ? new Date(b.endTime).getTime() : Number.MAX_SAFE_INTEGER;
+205:         return aEnd - bEnd;
+206:       });
+207:   }, [auctions, applied]);
+208: 
+209:   return (
+210:     <div className="min-h-screen bg-[#060d1f] text-slate-100">
+211:       {showHeader && (
+212:         <div className="mb-6">
+213:           <p className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2">Marketplace</p>
+214:           <h1 className="text-3xl font-black text-white">{title}</h1>
+215:           {subtitle && <p className="text-slate-400 text-sm mt-1">{subtitle}</p>}
+216:         </div>
+217:       )}
+218: 
+219:       <div className="flex gap-6">
+220:         {/* ── Sidebar ── */}
+221:         <aside className="w-56 flex-shrink-0 space-y-5">
+222:           {/* Search */}
+223:           <div>
+224:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Search</label>
+225:             <div className="flex items-center gap-2 bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5">
+226:               <Search className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+227:               <input
+228:                 value={search}
+229:                 onChange={(e) => setSearch(e.target.value)}
+230:                 onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+231:                 className="bg-transparent text-sm text-slate-100 outline-none placeholder-slate-600 flex-1 min-w-0"
+232:                 placeholder="Items, listings, art"
+233:               />
+234:             </div>
+235:           </div>
+236: 
+237:           {/* Category */}
+238:           <div>
+239:             <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wide">Category</label>
+240:             <div className="relative">
+241:               <select
+242:                 value={category}
+243:                 onChange={(e) => setCategory(e.target.value)}
+244:                 className="w-full appearance-none bg-[#0d1526] border border-[#1e2d4a] rounded-lg px-3 py-2.5 text-sm text-slate-100 outline-none cursor-pointer pr-8"
+245:               >
+246:                 <option value="ALL">All categories</option>
+247:                 {categories.map((c) => (
+248:                   <option key={c.id} value={c.name}>{c.name}</option>
+249:                 ))}
+250:               </select>
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
